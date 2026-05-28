@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sons of Anarchy - Streaming Dashboard</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            --bg-main: #0a0a0a;
+            --bg-card: #141414;
+            --bg-nav: #1a1a1a;
+            --accent: #f5a623;
+            --accent-hover: #ffb74d;
+            --text-main: #ffffff;
+            --text-muted: #aaaaaa;
+            --border: #262626;
+            --font: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font);
+            -webkit-font-smoothing: antialiased;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Navigation */
+        aside {
+            width: 280px;
+            background-color: var(--bg-nav);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand {
+            padding: 24px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            color: var(--accent);
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-title {
+            padding: 20px 24px 8px 24px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .episode-list {
+            list-style: none;
+            overflow-y: auto;
+            flex: 1;
+            padding: 0 12px 24px 12px;
+        }
+
+        .episode-item {
+            padding: 12px 16px;
+            margin-bottom: 4px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+            background-color: transparent;
+        }
+
+        .episode-item:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--accent);
+        }
+
+        .episode-item.active {
+            background-color: var(--accent);
+            color: var(--bg-main);
+            font-weight: 600;
+        }
+
+        .episode-info-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            pointer-events: none; /* Evita bugs de clique em elementos internos */
+        }
+
+        .ep-code {
+            font-size: 0.9rem;
+        }
+
+        .ep-status {
+            font-size: 0.7rem;
+            opacity: 0.8;
+        }
+
+        /* Main Content Area */
+        main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        .content-container {
+            max-width: 1100px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 40px 24px;
+            opacity: 1;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        /* Custom Video Player Container */
+        .player-wrapper {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+            position: relative;
+        }
+
+        .iframe-container {
+            position: relative;
+            width: 100%;
+            padding-top: 56.25%; /* 16:9 Aspect Ratio */
+            background: #000;
+        }
+
+        .iframe-container iframe {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+
+        /* Subtitle Notice */
+        .subtitle-notice {
+            background: rgba(20, 20, 20, 0.95);
+            border-top: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .subtitle-notice i {
+            color: var(--accent);
+            flex-shrink: 0;
+        }
+
+        .subtitle-notice strong {
+            color: #fff;
+        }
+
+        /* Details Section */
+        .details-section {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            padding: 32px;
+            border: 1px solid var(--border);
+        }
+
+        .meta-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .meta-badges {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .badge {
+            background-color: rgba(245, 166, 35, 0.1);
+            color: var(--accent);
+            padding: 4px 12px;
+            border-radius: 50px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border: 1px solid rgba(245, 166, 35, 0.2);
+        }
+
+        /* Botão de Download */
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background-color: var(--accent);
+            color: var(--bg-main);
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .download-btn:hover {
+            background-color: var(--accent-hover);
+            transform: translateY(-1px);
+        }
+
+        .download-btn:active {
+            transform: translateY(0);
+        }
+
+        .download-btn.disabled {
+            background-color: var(--border);
+            color: var(--text-muted);
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .episode-title-display {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 16px;
+            letter-spacing: -0.5px;
+        }
+
+        .episode-desc-display {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            color: var(--text-muted);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: var(--bg-main);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #444;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+            }
+            aside {
+                width: 100%;
+                height: auto;
+                max-height: 300px;
+            }
+            .episode-list {
+                display: flex;
+                overflow-x: auto;
+                overflow-y: hidden;
+                padding: 12px;
+                gap: 8px;
+            }
+            .episode-item {
+                flex-shrink: 0;
+                margin-bottom: 0;
+                white-space: nowrap;
+            }
+            .meta-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            .download-btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <aside>
+        <div class="brand">
+            <i data-lucide="shield"></i>
+            <span>SOA Stream</span>
+        </div>
+        <div class="category-title">Temporada 1</div>
+        <ul class="episode-list" id="episodeList">
+        </ul>
+    </aside>
+
+    <main>
+        <div class="content-container" id="contentContainer">
+            <div class="player-wrapper">
+                <div class="iframe-container">
+                    <iframe 
+                        id="videoPlayer"
+                        src="" 
+                        allow="autoplay; encrypted-media" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <div class="subtitle-notice">
+                    <i data-lucide="languages"></i>
+                    <div>
+                        <strong>Legendas Automáticas e Tradução:</strong> Como o player nativo do Google Drive em iFrame restringe injeções externas por segurança (CORS), ative a tradução nativa: clique no ícone de engrenagem ⚙️ dentro do vídeo do Drive, selecione <strong>Legendas (CC)</strong>, mude para <strong>Inglês (Gerada automaticamente)</strong>, clique novamente em Legendas e escolha <strong>Traduzir automaticamente -> Português</strong>.
+                    </div>
+                </div>
+            </div>
+
+            <div class="details-section">
+                <div class="meta-header">
+                    <div class="meta-badges">
+                        <span class="badge" id="episodeBadge">T1EP1</span>
+                        <span class="badge" style="background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border);">Sons of Anarchy</span>
+                    </div>
+                    <a href="#" id="downloadButton" target="_blank" class="download-btn">
+                        <i data-lucide="download" size="16"></i>
+                        Baixar Episódio
+                    </a>
+                </div>
+                <h1 class="episode-title-display" id="episodeTitle">Carregando...</h1>
+                <p class="episode-desc-display" id="episodeDescription">
+                    Carregando a descrição do episódio selecionado...
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const episodes = [
+            {
+                id: "T1EP1",
+                title: "Pilot - Piloto",
+                desc: "O início da jornada do motoclube SAMCRO. Jax Teller encontra um diário escrito por seu falecido pai que o faz questionar a direção atual do clube comandado por Clay Morrow.",
+                driveId: "1koXgyUNBPv5qcwcdJrdcCwoO_rclsn3P"
+            },
+            {
+                id: "T1EP2",
+                title: "Seeds - Sementes",
+                desc: "O clube lida com as consequências do incêndio no galpão de armas enquanto o chefe de polícia local pressiona as atividades ilícitas da cidade de Charming.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP2"
+            },
+            {
+                id: "T1EP3",
+                title: "Fun Town - Cidade da Diversão",
+                desc: "Quando a filha de um importante morador local é agredida em um parque de diversões itinerante, SAMCRO assume a responsabilidade de fazer justiça com as próprias mãos.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP3"
+            },
+            {
+                id: "T1EP4",
+                title: "Patch Over - Consolidação",
+                desc: "O clube viaja para Nevada para ajudar um motoclube parceiro e tentar consolidar novas rotas de tráfego, enquanto enfrentam tensões com gangues rivais.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP4"
+            },
+            {
+                id: "T1EP5",
+                title: "Giving - Doação",
+                desc: "Gemma organiza um evento beneficente que traz antigas rivalidades à tona, enquanto a investigação federal sobre as armas do clube começa a esquentar.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP5"
+            },
+            {
+                id: "T1EP6",
+                title: "AK-51",
+                desc: "Uma transação de armas dá errado quando uma antiga conexão de Piney coloca o motoclube na mira de traficantes locais fortemente armados.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP6"
+            },
+            {
+                id: "T1EP7",
+                title: "Old Bones - Ossos Antigos",
+                desc: "Ossos antigos são descobertos em um canteiro de obras em Charming, ameaçando expor segredos enterrados há décadas por Clay e os fundadores originais.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP7"
+            },
+            {
+                id: "T1EP8",
+                title: "The Pull - A Puxada",
+                desc: "Com o pagamento das armas atrasado, o clube precisa encontrar formas rápidas de arrecadar dinheiro para evitar uma guerra declarada com a máfia russa.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP8"
+            },
+            {
+                id: "T1EP9",
+                title: "Hell Followed - O Inferno o Seguiu",
+                desc: "Jax se vê em um dilema moral profundo após receber ordens diretas que entram em conflito com os valores originais deixados no manuscrito de seu pai.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP9"
+            },
+            {
+                id: "T1EP10",
+                title: "Better Half - Cara-Metade",
+                desc: "A ATF intensifica a pressão sobre as mulheres do clube, tentando fazer com que Tara ou Cherry colaborem com a justiça para derrubar o SAMCRO de dentro para fora.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP10"
+            },
+            {
+                id: "T1EP11",
+                title: "Capybara - Capivara",
+                desc: "Um membro do clube é detido e as suspeitas de um informante interno começam a criar uma atmosfera de paranoia extrema entre Clay e os demais integrantes.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP11"
+            },
+            {
+                id: "T1EP12",
+                title: "The Gavel - O Martelo",
+                desc: "As tensões entre Jax e Clay chegam ao ponto de ebulição total quando o clube decide votar um assunto de vida ou morte que mudará os rumos de Charming.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP12"
+            },
+            {
+                id: "T1EP13",
+                title: "The Revelator - O Revelador",
+                desc: "O épico final da primeira temporada. Uma tragédia atinge o coração do motoclube, forçando Jax a tomar uma decisão definitiva sobre seu futuro no SAMCRO.",
+                driveId: "SEU_ID_DO_DRIVE_AQUI_EP13"
+            }
+        ];
+
+        const listContainer = document.getElementById('episodeList');
+        const player = document.getElementById('videoPlayer');
+        const titleDisplay = document.getElementById('episodeTitle');
+        const descDisplay = document.getElementById('episodeDescription');
+        const badgeDisplay = document.getElementById('episodeBadge');
+        const contentContainer = document.getElementById('contentContainer');
+        const downloadButton = document.getElementById('downloadButton');
+
+        let currentIndex = 0;
+
+        function loadEpisode(index) {
+            if (index < 0 || index >= episodes.length) return;
+            currentIndex = index;
+            const ep = episodes[index];
+            
+            // Inicia o Fade out
+            contentContainer.style.opacity = 0;
+            
+            setTimeout(() => {
+                // Altera as informações textuais
+                titleDisplay.textContent = ep.title;
+                descDisplay.textContent = ep.desc;
+                badgeDisplay.textContent = ep.id;
+                
+                // Valida se o ID foi alterado pelo usuário ou ainda é o placeholder
+                if(ep.driveId.includes("SEU_ID_DO_DRIVE")) {
+                    player.src = "about:blank"; // Limpa o player se não tiver ID válido
+                    downloadButton.href = "#";
+                    downloadButton.classList.add('disabled');
+                } else {
+                    player.src = `https://drive.google.com/file/d/${ep.driveId}/preview?hl=pt`;
+                    // Altera dinamicamente o link para a tela de download oficial do Google Drive
+                    downloadButton.href = `https://drive.google.com/uc?export=download&id=${ep.driveId}`;
+                    downloadButton.classList.remove('disabled');
+                }
+
+                // Atualiza a estilização visual dos itens da lista lateral
+                const items = document.querySelectorAll('.episode-item');
+                items.forEach((item, idx) => {
+                    const icon = item.querySelector('i');
+                    if(idx === index) {
+                        item.classList.add('active');
+                        if (icon) icon.setAttribute('data-lucide', 'play');
+                    } else {
+                        item.classList.remove('active');
+                        if (icon) icon.setAttribute('data-lucide', 'film');
+                    }
+                });
+                
+                // Recarrega os ícones Lucide atualizados
+                lucide.createIcons();
+
+                // Conclui o Fade in
+                contentContainer.style.opacity = 1;
+            }, 250);
+        }
+
+        // Renderiza e inicializa os cards na barra lateral de forma estrita
+        function initSidebar() {
+            listContainer.innerHTML = ""; // Garante que a lista comece limpa
+            episodes.forEach((ep, index) => {
+                const li = document.createElement('li');
+                li.className = `episode-item`;
+                
+                // Atribuição de evento protegida
+                li.addEventListener('click', (e) => {
+                    e.stopPropagation(); // Impede o clique de propagar para elementos pai
+                    loadEpisode(index);
+                });
+
+                li.innerHTML = `
+                    <div class="episode-info-meta">
+                        <span class="ep-code">${ep.id}</span>
+                        <span class="ep-status">Disponível</span>
+                    </div>
+                    <i data-lucide="film" size="16"></i>
+                `;
+                listContainer.appendChild(li);
+            });
+        }
+
+        // Inicialização global da aplicação
+        initSidebar();
+        loadEpisode(0); // Carrega o primeiro episódio por padrão
+    </script>
+</body>
+  </html>
+  
